@@ -274,6 +274,8 @@ npm test           # Tests (à implémenter)
 
 Ce projet est sous licence MIT.
 
+> Pour tout problème rencontrez, vous pouvez [créer une issues via cette page](https://github.com/flojucv/skedy-back/issues)
+
 ## 🔗 Liens utiles
 
 - **Frontend Skedy** : [skedy-front](https://github.com/flojucv/skedy-front.git)
