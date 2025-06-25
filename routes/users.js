@@ -279,7 +279,7 @@ router.delete('/user/:id', adminPermission, async (req, res) => {
         fr: 'Utilisateur non trouvé',
         en: 'User not found'
     });
-    await dbnod.query('DELETE FROM A_have_group WHERE user_id = ?', [userId]);
+    await db.query('DELETE FROM A_have_group WHERE user_id = ?', [userId]);
     const deleteQuery = 'DELETE FROM T_users WHERE id = ?';
     await db.query(deleteQuery, [userId]);
     return returnResponse.responseSucess(res, {}, {
