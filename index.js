@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
+const logger = require("./utils/logger");
 require("dotenv").config();
 
 const app = express();
@@ -15,6 +16,9 @@ app.use(cors({
 }));
 
 app.use(express.json()); // Pour parser le JSON
+
+// Ajouter le middleware de logging
+app.use(logger.middleware());
 
 const routesPath = path.join(__dirname, "routes");
 
@@ -30,6 +34,12 @@ fs.readdirSync(routesPath).forEach((file) => {
 const PORT = process.env.PORT || 3000;
 
 app.use((req, res) => {
+    logger.warn(`Ressource non trouvée: ${req.method} ${req.originalUrl}`, {
+        method: req.method,
+        url: req.originalUrl,
+        ip: req.ip || req.connection.remoteAddress
+    });
+    
     res.status(404).json({
         error: true,
         messages: {
@@ -40,5 +50,8 @@ app.use((req, res) => {
 })
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`API disponible sur http://localhost:${PORT}`);
+  logger.info(`API démarrée sur http://localhost:${PORT}`, {
+    port: PORT,
+    environment: process.env.NODE_ENV || 'development'
+  });
 });

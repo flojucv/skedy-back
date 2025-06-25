@@ -2,24 +2,39 @@ const express = require('express');
 const router = express.Router();
 const db = require('../utils/db');
 const helper = require('../utils/helper');
+const logger = require('../utils/logger');
 require('dotenv').config();
 const returnResponse = require('../utils/returnResponse');
 const {adminPermission} = require('../middleware/verif_auth');
 
 router.get('/groups', adminPermission, async (req, res) => {
-    const query = 'SELECT id, label, color FROM T_group';
-    const rows = await db.query(query);
-    const data = await helper.emptyOrRows(rows);
+    logger.info('Récupération de la liste des groupes');
+    
+    try {
+        const query = 'SELECT id, label, color FROM T_group';
+        const rows = await db.query(query);
+        const data = await helper.emptyOrRows(rows);
 
-    if (data.length === 0) return returnResponse.responseError(res, 'HTTP_NOT_FOUND', {
-        fr: 'Aucun groupe trouvé',
-        en: 'No groups found'
-    });
+        if (data.length === 0) {
+            logger.warn('Aucun groupe trouvé dans la base de données');
+            return returnResponse.responseError(res, 'HTTP_NOT_FOUND', {
+                fr: 'Aucun groupe trouvé',
+                en: 'No groups found'
+            });
+        }
 
-    return returnResponse.responseSucess(res, data, {
-        fr: 'Groupes récupérés avec succès',
-        en: 'Groups retrieved successfully'
-    });
+        logger.info('Groupes récupérés avec succès', { groupCount: data.length });
+        return returnResponse.responseSucess(res, data, {
+            fr: 'Groupes récupérés avec succès',
+            en: 'Groups retrieved successfully'
+        });
+    } catch (error) {
+        logger.error('Erreur lors de la récupération des groupes', { error: error.message });
+        return returnResponse.responseError(res, 'HTTP_INTERNAL_SERVER_ERROR', {
+            fr: 'Erreur interne du serveur',
+            en: 'Internal server error'
+        });
+    }
 });
 
 router.post('/group', adminPermission, async (req, res) => {

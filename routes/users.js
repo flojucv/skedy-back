@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const db = require('../utils/db');
 const helper = require('../utils/helper');
+const logger = require('../utils/logger');
 require('dotenv').config();
 const returnResponse = require('../utils/returnResponse');
 const {adminPermission, authenticateToken} = require('../middleware/verif_auth');
@@ -11,32 +12,52 @@ const {adminPermission, authenticateToken} = require('../middleware/verif_auth')
 router.post('/login', async (req, res) => {
     const { username, password } = req.body;
 
-    if (!username || !password) return returnResponse.responseError(res, 'HTTP_BAD_REQUEST', {
-        fr: 'Nom d\'utilisateur et mot de passe requis',
-        en: 'Username and password are required'
-    });
+    logger.info('Tentative de connexion', { username });
 
-    const query = 'SELECT id, username, password FROM T_users WHERE username = ?';
-    const row = await db.query(query, [username]);
-    const data = await helper.emptyOrRows(row);
-    
-    if (data.length === 0) return returnResponse.responseError(res, 'HTTP_UNAUTHORIZED', {
-        fr: 'Nom d\'utilisateur ou mot de passe incorrect',
-        en: 'Username or password is incorrect'
-    });
+    if (!username || !password) {
+        logger.warn('Tentative de connexion avec des champs manquants', { username });
+        return returnResponse.responseError(res, 'HTTP_BAD_REQUEST', {
+            fr: 'Nom d\'utilisateur et mot de passe requis',
+            en: 'Username and password are required'
+        });
+    }
 
-    const user = data[0];
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return returnResponse.responseError(res, 'HTTP_UNAUTHORIZED', {
-        fr: 'Nom d\'utilisateur ou mot de passe incorrect',
-        en: 'Username or password is incorrect'
-    });
+    try {
+        const query = 'SELECT id, username, password FROM T_users WHERE username = ?';
+        const row = await db.query(query, [username]);
+        const data = await helper.emptyOrRows(row);
+        
+        if (data.length === 0) {
+            logger.warn('Tentative de connexion avec un utilisateur inexistant', { username });
+            return returnResponse.responseError(res, 'HTTP_UNAUTHORIZED', {
+                fr: 'Nom d\'utilisateur ou mot de passe incorrect',
+                en: 'Username or password is incorrect'
+            });
+        }
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '3d' });
-    return returnResponse.responseSucess(res, { token }, {
-        fr: 'Connexion réussie',
-        en: 'Login successful'
-    });
+        const user = data[0];
+        const match = await bcrypt.compare(password, user.password);
+        if (!match) {
+            logger.warn('Tentative de connexion avec un mot de passe incorrect', { username });
+            return returnResponse.responseError(res, 'HTTP_UNAUTHORIZED', {
+                fr: 'Nom d\'utilisateur ou mot de passe incorrect',
+                en: 'Username or password is incorrect'
+            });
+        }
+
+        const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '3d' });
+        logger.info('Connexion réussie', { username, userId: user.id });
+        return returnResponse.responseSucess(res, { token }, {
+            fr: 'Connexion réussie',
+            en: 'Login successful'
+        });
+    } catch (error) {
+        logger.error('Erreur lors de la connexion', { username, error: error.message });
+        return returnResponse.responseError(res, 'HTTP_INTERNAL_SERVER_ERROR', {
+            fr: 'Erreur interne du serveur',
+            en: 'Internal server error'
+        });
+    }
 });
 
 router.post('/register', adminPermission, async (req, res) => {

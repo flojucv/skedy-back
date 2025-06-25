@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const logger = require('../utils/logger');
 require('dotenv').config();
 const db = require('../utils/db');
 const helper = require('../utils/helper');
@@ -7,6 +8,11 @@ const returnResponse = require('../utils/returnResponse');
 const authenticateToken = async (req, res, next) => {
     const authHeader = req.headers['authorization'];
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        logger.warn('Tentative d\'accès sans token valide', { 
+            ip: req.ip, 
+            url: req.originalUrl,
+            authHeader: authHeader ? 'présent mais mal formé' : 'absent'
+        });
         return returnResponse.responseError(res, 'HTTP_UNAUTHORIZED', {
             fr: 'Token manquant ou mal formé',
             en: 'Missing or malformed token'
@@ -21,11 +27,21 @@ const authenticateToken = async (req, res, next) => {
         const rows = await db.query(query, [decoded.userId]);
         const results = helper.emptyOrRows(rows);
         if (results.length === 0) {
+            logger.warn('Tentative d\'accès avec token invalide', { 
+                userId: decoded.userId,
+                ip: req.ip,
+                url: req.originalUrl
+            });
             return returnResponse.responseError(res, 'HTTP_FORBIDDEN', {
                 fr: 'Token invalide',
                 en: 'Invalid token'
             });
         }
+        
+        logger.debug('Authentification réussie', { 
+            userId: decoded.userId,
+            url: req.originalUrl
+        });
         
         req.user = { id: results[0].id };
         next();

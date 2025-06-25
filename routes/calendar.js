@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const db = require('../utils/db');
+const logger = require('../utils/logger');
 require('dotenv').config();
 const returnResponse = require('../utils/returnResponse');
 const { authenticateToken } = require('../middleware/verif_auth');
@@ -9,31 +10,47 @@ const { authenticateToken } = require('../middleware/verif_auth');
 router.post('/calendar/event', authenticateToken, async (req, res) => {
     const userId = jwt.verify(req.headers.authorization.split(' ')[1], process.env.JWT_SECRET).userId;
 
-    const verifSQL = `SELECT T_role.permission FROM T_users INNER JOIN T_role ON T_users.role_id = T_role.id WHERE T_users.id = ?`;
-    const verif = await db.query(verifSQL, [userId]);
-    if (verif.length === 0 || !(verif[0].permission.includes('write') || verif[0].permission.includes('admin'))) {
-        return returnResponse.responseError(res, 'HTTP_FORBIDDEN', {
-            fr: 'Nom d\'utilisateur et role requis',
-            en: 'Username and role are required'
-        });
-    }
+    logger.info('Tentative de création d\'événement', { userId });
 
-    const { title, group_id, start, end } = req.body;
-
-    if (!title || !group_id || !start || !end) return returnResponse.responseError(res, 'HTTP_BAD_REQUEST', {
-        fr: 'Titre, groupe, date de début et de fin requis',
-        en: 'Title, group, start date and end date are required'
-    });
-
-    const insertSQL = `INSERT INTO T_events (title, group_id, start, end) VALUES (?, ?, ?, ?)`;
     try {
+        const verifSQL = `SELECT T_role.permission FROM T_users INNER JOIN T_role ON T_users.role_id = T_role.id WHERE T_users.id = ?`;
+        const verif = await db.query(verifSQL, [userId]);
+        if (verif.length === 0 || !(verif[0].permission.includes('write') || verif[0].permission.includes('admin'))) {
+            logger.warn('Tentative de création d\'événement sans permissions', { userId });
+            return returnResponse.responseError(res, 'HTTP_FORBIDDEN', {
+                fr: 'Nom d\'utilisateur et role requis',
+                en: 'Username and role are required'
+            });
+        }
+
+        const { title, group_id, start, end } = req.body;
+
+        if (!title || !group_id || !start || !end) {
+            logger.warn('Tentative de création d\'événement avec des champs manquants', { userId, missingFields: { title: !title, group_id: !group_id, start: !start, end: !end } });
+            return returnResponse.responseError(res, 'HTTP_BAD_REQUEST', {
+                fr: 'Titre, groupe, date de début et de fin requis',
+                en: 'Title, group, start date and end date are required'
+            });
+        }
+
+        const insertSQL = `INSERT INTO T_events (title, group_id, start, end) VALUES (?, ?, ?, ?)`;
         await db.query(insertSQL, [title, group_id, start.slice(0, 19).replace('T', ' '), end.slice(0, 19).replace('T', ' ')]);
+        
+        logger.info('Événement créé avec succès', { 
+            userId, 
+            eventData: { title, group_id, start, end } 
+        });
+        
         return returnResponse.responseSucess(res, {}, {
             fr: 'Événement créé avec succès',
             en: 'Event created successfully'
         });
     } catch (error) {
-        console.error(error);
+        logger.error('Erreur lors de la création de l\'événement', { 
+            userId, 
+            error: error.message,
+            eventData: req.body 
+        });
         return returnResponse.responseError(res, 'HTTP_INTERNAL_SERVER_ERROR', {
             fr: 'Erreur lors de la création de l\'événement',
             en: 'Error creating event'

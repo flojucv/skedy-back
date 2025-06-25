@@ -2,24 +2,39 @@ const express = require('express');
 const router = express.Router();
 const db = require('../utils/db');
 const helper = require('../utils/helper');
+const logger = require('../utils/logger');
 require('dotenv').config();
 const returnResponse = require('../utils/returnResponse');
 const {adminPermission} = require('../middleware/verif_auth');
 
 router.get('/roles', adminPermission, async (req, res) => {
-    const query = 'SELECT id, label, permission FROM T_role';
-    const rows = await db.query(query);
-    const data = await helper.emptyOrRows(rows);
+    logger.info('Récupération de la liste des rôles');
+    
+    try {
+        const query = 'SELECT id, label, permission FROM T_role';
+        const rows = await db.query(query);
+        const data = await helper.emptyOrRows(rows);
 
-    if (data.length === 0) return returnResponse.responseError(res, 'HTTP_NOT_FOUND', {
-        fr: 'Aucun rôle trouvé',
-        en: 'No roles found'
-    });
+        if (data.length === 0) {
+            logger.warn('Aucun rôle trouvé dans la base de données');
+            return returnResponse.responseError(res, 'HTTP_NOT_FOUND', {
+                fr: 'Aucun rôle trouvé',
+                en: 'No roles found'
+            });
+        }
 
-    return returnResponse.responseSucess(res, data, {
-        fr: 'Rôles récupérés avec succès',
-        en: 'Roles retrieved successfully'
-    });
+        logger.info('Rôles récupérés avec succès', { roleCount: data.length });
+        return returnResponse.responseSucess(res, data, {
+            fr: 'Rôles récupérés avec succès',
+            en: 'Roles retrieved successfully'
+        });
+    } catch (error) {
+        logger.error('Erreur lors de la récupération des rôles', { error: error.message });
+        return returnResponse.responseError(res, 'HTTP_INTERNAL_SERVER_ERROR', {
+            fr: 'Erreur interne du serveur',
+            en: 'Internal server error'
+        });
+    }
 });
 
 router.post('/role', adminPermission, async (req, res) => {
