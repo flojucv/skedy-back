@@ -210,7 +210,7 @@ curl -X POST http://localhost:3000/login \
 
 ## 📊 Système de Logging
 
-> [Voir le fichier explicatif du logging ici](./docs/logging.md)
+> [Voir le fichier explicatif du logging ici](./logging.md)
 
 ### Monitoring recommandé
 ```bash
