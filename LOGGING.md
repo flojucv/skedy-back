@@ -54,7 +54,7 @@ Le système de logging a été intégré dans **TOUS** les fichiers de l'API Ske
 
 ### Sorties de log
 - **Console** : Affichage coloré en temps réel (tous les environnements)
-- **Fichiers** : Stockage persistent dans le dossier `logs/` (production uniquement)
+- **Fichiers** : Stockage persistent dans le dossier `logs/`
   - `YYYY-MM-DD-all.log` : Tous les logs du jour
   - `YYYY-MM-DD-errors.log` : Uniquement les erreurs du jour
 
@@ -141,8 +141,6 @@ router.post('/api/endpoint', async (req, res) => {
 
 #### Contrôle de l'écriture des logs
 - `DISABLE_FILE_LOGS=true` : Désactive complètement l'écriture des logs dans les fichiers
-- `LOG_MODE=console-only` : Mode console uniquement (équivalent à DISABLE_FILE_LOGS=true)
-- `NODE_ENV=test` : Les logs ne sont pas écrits dans les fichiers en mode test
 
 #### Autres options
 - `NODE_ENV=development` : Active les logs DEBUG
@@ -164,17 +162,16 @@ DISABLE_FILE_LOGS=false
 DEBUG=true
 ```
 
-#### Mode test - Pas de fichiers de logs
+#### Mode test - Avec fichiers de logs
 ```env
 NODE_ENV=test
 DEBUG=false
 ```
 
-#### Mode production - Logs complets
+#### Mode production - Toutes les logs
 ```env
 NODE_ENV=production
-DISABLE_FILE_LOGS=false
-DEBUG=false
+DEBUG=true
 ```
 
 ### Comportement selon la configuration
@@ -184,8 +181,7 @@ DEBUG=false
 | `NODE_ENV=development` + `DISABLE_FILE_LOGS=true` | ✅ | ❌ | ✅ |
 | `NODE_ENV=development` + `DISABLE_FILE_LOGS=false` | ✅ | ✅ | ✅ |
 | `NODE_ENV=production` + `DISABLE_FILE_LOGS=false` | ✅ | ✅ | ❌ |
-| `NODE_ENV=test` | ✅ | ❌ | ❌ |
-| `LOG_MODE=console-only` | ✅ | ❌ | Selon NODE_ENV |
+| `NODE_ENV=production` + `DISABLE_FILE_LOGS=true` | ✅ | ❌ | ❌ |
 
 ### Format des logs
 Les logs sont stockés au format JSON pour faciliter l'analyse :
