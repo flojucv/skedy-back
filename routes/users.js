@@ -301,6 +301,11 @@ router.get('/permissions/:permission', adminPermission, async (req, res) => {
     });
 
     const userPermission = data[0].permission;
+    if(userPermission == 'admin') return returnResponse.responseSucess(res, { hasPermission: true }, {
+        fr: 'Permission accordée (admin)',
+        en: 'Permission granted (admin)'
+    });
+    
     if (userPermission.includes(permission)) return returnResponse.responseSucess(res, { hasPermission: true }, {
         fr: 'Permission accordée',
         en: 'Permission granted'

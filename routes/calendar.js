@@ -107,9 +107,9 @@ router.get('/calendar/events', authenticateToken, async (req, res) => {
 
         let events;
         if (isAdmin) {
-            // Si admin, afficher tous les événements
-            const eventsSQL = "SELECT T_events.id, title, T_group.color AS color, T_group.label AS group_label, T_group.id AS group_id, start, end FROM T_events INNER JOIN T_group ON T_group.id = T_events.group_id WHERE start >= ? AND end <= ?";
-            events = await db.query(eventsSQL, [startDate.toISOString().slice(0, 19).replace('T', ' '), endDate.toISOString().slice(0, 19).replace('T', ' ')]);
+            // Si admin, afficher tous les événements qui se chevauchent avec la période
+            const eventsSQL = "SELECT T_events.id, title, T_group.color AS color, T_group.label AS group_label, T_group.id AS group_id, start, end FROM T_events INNER JOIN T_group ON T_group.id = T_events.group_id WHERE start <= ? AND end >= ?";
+            events = await db.query(eventsSQL, [endDate.toISOString().slice(0, 19).replace('T', ' '), startDate.toISOString().slice(0, 19).replace('T', ' ')]);
         } else {
             // Sinon, récupérer les groupes de l'utilisateur
             const userGroupsSQL = "SELECT group_id FROM A_have_group WHERE user_id = ?";
@@ -127,13 +127,13 @@ router.get('/calendar/events', authenticateToken, async (req, res) => {
             const groupIds = userGroups.map(group => group.group_id);
             const placeholders = groupIds.map(() => '?').join(',');
             
-            // Récupérer uniquement les événements des groupes de l'utilisateur
+            // Récupérer uniquement les événements des groupes de l'utilisateur qui se chevauchent avec la période
             const eventsSQL = `SELECT T_events.id, title, T_group.color AS color, T_group.label AS group_label, T_group.id AS group_id, start, end 
                                FROM T_events 
                                INNER JOIN T_group ON T_group.id = T_events.group_id 
-                               WHERE T_events.group_id IN (${placeholders}) AND start >= ? AND end <= ?`;
+                               WHERE T_events.group_id IN (${placeholders}) AND start <= ? AND end >= ?`;
             
-            events = await db.query(eventsSQL, [...groupIds, startDate.toISOString().slice(0, 19).replace('T', ' '), endDate.toISOString().slice(0, 19).replace('T', ' ')]);
+            events = await db.query(eventsSQL, [...groupIds, endDate.toISOString().slice(0, 19).replace('T', ' '), startDate.toISOString().slice(0, 19).replace('T', ' ')]);
         }
 
         return returnResponse.responseSucess(res, events, {

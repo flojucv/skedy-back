@@ -53,10 +53,12 @@ Le système de logging a été intégré dans **TOUS** les fichiers de l'API Ske
 - **DEBUG** : Messages de débogage (couleur magenta, visible uniquement en mode développement)
 
 ### Sorties de log
-- **Console** : Affichage coloré en temps réel
-- **Fichiers** : Stockage persistent dans le dossier `logs/`
+- **Console** : Affichage coloré en temps réel (tous les environnements)
+- **Fichiers** : Stockage persistent dans le dossier `logs/` (production uniquement)
   - `YYYY-MM-DD-all.log` : Tous les logs du jour
   - `YYYY-MM-DD-errors.log` : Uniquement les erreurs du jour
+
+> ⚠️ **Note** : Si DISABLE_FILE_LOGS= true, les logs ne sont affichés que dans la console et ne sont pas sauvegardés dans les fichiers.
 
 ### Middleware automatique
 Le système capture automatiquement :
@@ -135,9 +137,55 @@ router.post('/api/endpoint', async (req, res) => {
 
 ## Configuration
 
-### Variables d'environnement
+### Variables d'environnement pour le logging
+
+#### Contrôle de l'écriture des logs
+- `DISABLE_FILE_LOGS=true` : Désactive complètement l'écriture des logs dans les fichiers
+- `LOG_MODE=console-only` : Mode console uniquement (équivalent à DISABLE_FILE_LOGS=true)
+- `NODE_ENV=test` : Les logs ne sont pas écrits dans les fichiers en mode test
+
+#### Autres options
 - `NODE_ENV=development` : Active les logs DEBUG
 - `DEBUG=true` : Force l'affichage des logs DEBUG même en production
+
+### Exemples de configuration
+
+#### Mode développement - Console uniquement
+```env
+NODE_ENV=development
+DISABLE_FILE_LOGS=true
+DEBUG=true
+```
+
+#### Mode développement - Avec fichiers de logs
+```env
+NODE_ENV=development
+DISABLE_FILE_LOGS=false
+DEBUG=true
+```
+
+#### Mode test - Pas de fichiers de logs
+```env
+NODE_ENV=test
+DEBUG=false
+```
+
+#### Mode production - Logs complets
+```env
+NODE_ENV=production
+DISABLE_FILE_LOGS=false
+DEBUG=false
+```
+
+### Comportement selon la configuration
+
+| Configuration | Console | Fichiers | Logs DEBUG |
+|---------------|---------|----------|------------|
+| `NODE_ENV=development` + `DISABLE_FILE_LOGS=true` | ✅ | ❌ | ✅ |
+| `NODE_ENV=development` + `DISABLE_FILE_LOGS=false` | ✅ | ✅ | ✅ |
+| `NODE_ENV=production` + `DISABLE_FILE_LOGS=false` | ✅ | ✅ | ❌ |
+| `NODE_ENV=test` | ✅ | ❌ | ❌ |
+| `LOG_MODE=console-only` | ✅ | ❌ | Selon NODE_ENV |
 
 ### Format des logs
 Les logs sont stockés au format JSON pour faciliter l'analyse :

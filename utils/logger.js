@@ -51,12 +51,16 @@ class Logger {
     // Écrire dans la console
     this.writeToConsole(level, message, extra);
     
-    // Écrire dans les fichiers
-    const today = new Date().toISOString().split('T')[0];
-    this.writeToFile(`${today}-all.log`, formattedMessage);
+    // Écrire dans les fichiers seulement si pas désactivé explicitement
+    const isFileLoggingDisabled = process.env.DISABLE_FILE_LOGS === 'true';
     
-    if (level === 'ERROR') {
-      this.writeToFile(`${today}-errors.log`, formattedMessage);
+    if (!isFileLoggingDisabled) {
+      const today = new Date().toISOString().split('T')[0];
+      this.writeToFile(`${today}-all.log`, formattedMessage);
+      
+      if (level === 'ERROR') {
+        this.writeToFile(`${today}-errors.log`, formattedMessage);
+      }
     }
   }
 
