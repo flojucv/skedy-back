@@ -7,7 +7,7 @@
 #
 # Hôte: localhost (MySQL 9.2.0)
 # Base de données: calendar
-# Temps de génération: 2025-07-07 12:14:16 +0000
+# Temps de génération: 2025-07-07 12:16:29 +0000
 # ************************************************************
 
 
@@ -82,6 +82,17 @@ CREATE TABLE `T_role` (
   UNIQUE KEY `label` (`label`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+LOCK TABLES `T_role` WRITE;
+/*!40000 ALTER TABLE `T_role` DISABLE KEYS */;
+
+INSERT INTO `T_role` (`id`, `label`, `permission`)
+VALUES
+	(1,'admin','[\"admin\"]'),
+	(2,'Eleve','[\"read\"]'),
+	(3,'Professeur','[\"write\", \"read\"]');
+
+/*!40000 ALTER TABLE `T_role` ENABLE KEYS */;
+UNLOCK TABLES;
 
 
 # Dump de la table T_users
@@ -100,6 +111,15 @@ CREATE TABLE `T_users` (
   CONSTRAINT `T_users_ibfk_1` FOREIGN KEY (`role_id`) REFERENCES `T_role` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+LOCK TABLES `T_users` WRITE;
+/*!40000 ALTER TABLE `T_users` DISABLE KEYS */;
+
+INSERT INTO `T_users` (`id`, `username`, `password`, `role_id`)
+VALUES
+	(19,'test','$2b$10$CvXAUVB777jcAyavp4xgCetBdpnv291rQX1g4904zM0PA007x3cfW',1);
+
+/*!40000 ALTER TABLE `T_users` ENABLE KEYS */;
+UNLOCK TABLES;
 
 
 
