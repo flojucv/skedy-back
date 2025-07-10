@@ -32,7 +32,7 @@ CREATE TABLE `A_have_group` (
   KEY `group_id` (`group_id`),
   CONSTRAINT `A_have_group_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `T_users` (`id`),
   CONSTRAINT `A_have_group_ibfk_2` FOREIGN KEY (`group_id`) REFERENCES `T_group` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
 
@@ -50,7 +50,7 @@ CREATE TABLE `T_events` (
   PRIMARY KEY (`id`),
   KEY `FK group_id event_id` (`group_id`),
   CONSTRAINT `FK group_id event_id` FOREIGN KEY (`group_id`) REFERENCES `T_group` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
 
@@ -65,7 +65,7 @@ CREATE TABLE `T_group` (
   `color` varchar(7) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UNIQUE label T_group` (`label`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
 
@@ -80,7 +80,7 @@ CREATE TABLE `T_role` (
   `permission` json NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `label` (`label`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 LOCK TABLES `T_role` WRITE;
 /*!40000 ALTER TABLE `T_role` DISABLE KEYS */;
@@ -109,7 +109,7 @@ CREATE TABLE `T_users` (
   UNIQUE KEY `username` (`username`),
   KEY `role_id` (`role_id`),
   CONSTRAINT `T_users_ibfk_1` FOREIGN KEY (`role_id`) REFERENCES `T_role` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 LOCK TABLES `T_users` WRITE;
 /*!40000 ALTER TABLE `T_users` DISABLE KEYS */;

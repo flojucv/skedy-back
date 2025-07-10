@@ -33,12 +33,12 @@ router.post('/calendar/event', authenticateToken, async (req, res) => {
             });
         }
 
-        const insertSQL = `INSERT INTO T_events (title, group_id, start, end) VALUES (?, ?, ?, ?)`;
-        await db.query(insertSQL, [title, group_id, start.slice(0, 19).replace('T', ' '), end.slice(0, 19).replace('T', ' ')]);
+        const insertSQL = `INSERT INTO T_events (title, group_id, start, end, user_id) VALUES (?, ?, ?, ?, ?)`;
+        await db.query(insertSQL, [title, group_id, start.slice(0, 19).replace('T', ' '), end.slice(0, 19).replace('T', ' '), userId]);
         
         logger.info('Événement créé avec succès', { 
             userId, 
-            eventData: { title, group_id, start, end } 
+            eventData: { title, group_id, start, end, userId }
         });
         
         return returnResponse.responseSucess(res, {}, {
@@ -149,4 +149,56 @@ router.get('/calendar/events', authenticateToken, async (req, res) => {
     }
 });
 
+router.delete('/calendar/event/:id', authenticateToken, async (req, res) => {
+    const userId = jwt.verify(req.headers.authorization.split(' ')[1], process.env.JWT_SECRET).userId;
+    const eventId = req.params.id;
+
+    logger.info('Tentative de suppression d\'événement', { userId, eventId });
+
+    try {
+        // Vérifier les permissions de l'utilisateur
+        const verifSQL = `SELECT T_role.permission FROM T_users INNER JOIN T_role ON T_users.role_id = T_role.id WHERE T_users.id = ?`;
+        const verif = await db.query(verifSQL, [userId]);
+        if (verif.length === 0 || !(verif[0].permission.includes('write') || verif[0].permission.includes('admin'))) {
+            logger.warn('Tentative de suppression d\'événement sans permissions', { userId, eventId });
+            return returnResponse.responseError(res, 'HTTP_FORBIDDEN', {
+                fr: 'Permissions insuffisantes pour supprimer cet événement',
+                en: 'Insufficient permissions to delete this event'
+            });
+        }
+
+        // Vérifier si l'événement existe
+        const eventExistsSQL = `SELECT id FROM T_events WHERE id = ?`;
+        const eventExists = await db.query(eventExistsSQL, [eventId]);
+        
+        if (eventExists.length === 0) {
+            logger.warn('Tentative de suppression d\'un événement inexistant', { userId, eventId });
+            return returnResponse.responseError(res, 'HTTP_NOT_FOUND', {
+                fr: 'Événement non trouvé',
+                en: 'Event not found'
+            });
+        }
+
+        // Supprimer l'événement
+        const deleteSQL = `DELETE FROM T_events WHERE id = ?`;
+        await db.query(deleteSQL, [eventId]);
+        
+        logger.info('Événement supprimé avec succès', { userId, eventId });
+        
+        return returnResponse.responseSucess(res, {}, {
+            fr: 'Événement supprimé avec succès',
+            en: 'Event deleted successfully'
+        });
+    } catch (error) {
+        logger.error('Erreur lors de la suppression de l\'événement', { 
+            userId, 
+            eventId,
+            error: error.message
+        });
+        return returnResponse.responseError(res, 'HTTP_INTERNAL_SERVER_ERROR', {
+            fr: 'Erreur lors de la suppression de l\'événement',
+            en: 'Error deleting event'
+        });
+    }
+});
 module.exports = router;
