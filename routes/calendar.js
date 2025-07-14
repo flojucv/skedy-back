@@ -5,7 +5,7 @@ const db = require('../utils/db');
 const logger = require('../utils/logger');
 require('dotenv').config();
 const returnResponse = require('../utils/returnResponse');
-const { authenticateToken } = require('../middleware/verif_auth');
+const { authenticateToken, adminPermission } = require('../middleware/verif_auth');
 
 router.post('/calendar/event', authenticateToken, async (req, res) => {
     const userId = jwt.verify(req.headers.authorization.split(' ')[1], process.env.JWT_SECRET).userId;
@@ -40,16 +40,16 @@ router.post('/calendar/event', authenticateToken, async (req, res) => {
             userId, 
             eventData: { title, group_id, start, end, userId }
         });
-        
+
         return returnResponse.responseSucess(res, {}, {
             fr: 'Événement créé avec succès',
             en: 'Event created successfully'
         });
     } catch (error) {
-        logger.error('Erreur lors de la création de l\'événement', { 
-            userId, 
+        logger.error('Erreur lors de la création de l\'événement', {
+            userId,
             error: error.message,
-            eventData: req.body 
+            eventData: req.body
         });
         return returnResponse.responseError(res, 'HTTP_INTERNAL_SERVER_ERROR', {
             fr: 'Erreur lors de la création de l\'événement',
@@ -114,7 +114,7 @@ router.get('/calendar/events', authenticateToken, async (req, res) => {
             // Sinon, récupérer les groupes de l'utilisateur
             const userGroupsSQL = "SELECT group_id FROM A_have_group WHERE user_id = ?";
             const userGroups = await db.query(userGroupsSQL, [userId]);
-            
+
             if (userGroups.length === 0) {
                 // L'utilisateur n'appartient à aucun groupe
                 return returnResponse.responseSucess(res, [], {
@@ -122,17 +122,17 @@ router.get('/calendar/events', authenticateToken, async (req, res) => {
                     en: 'No events available'
                 });
             }
-            
+
             // Créer une liste des IDs de groupe pour la clause IN
             const groupIds = userGroups.map(group => group.group_id);
             const placeholders = groupIds.map(() => '?').join(',');
-            
+
             // Récupérer uniquement les événements des groupes de l'utilisateur qui se chevauchent avec la période
             const eventsSQL = `SELECT T_events.id, title, T_group.color AS color, T_group.label AS group_label, T_group.id AS group_id, start, end 
                                FROM T_events 
                                INNER JOIN T_group ON T_group.id = T_events.group_id 
                                WHERE T_events.group_id IN (${placeholders}) AND start <= ? AND end >= ?`;
-            
+
             events = await db.query(eventsSQL, [...groupIds, endDate.toISOString().slice(0, 19).replace('T', ' '), startDate.toISOString().slice(0, 19).replace('T', ' ')]);
         }
 
@@ -201,4 +201,22 @@ router.delete('/calendar/event/:id', authenticateToken, async (req, res) => {
         });
     }
 });
+
+router.get('/calendar/export', adminPermission, async (req, res) => {
+    try {
+        const eventsSQL = "SELECT T_events.id, title, T_group.color AS color, T_group.label AS group_label, T_group.id AS group_id, start, end FROM T_events INNER JOIN T_group ON T_group.id = T_events.group_id";
+        events = await db.query(eventsSQL);
+
+        return returnResponse.responseSucess(res, events, {
+            fr: 'Événements récupérés avec succès',
+            en: 'Events retrieved successfully'
+        });
+    } catch (error) {
+        console.error(error);
+        return returnResponse.responseError(res, 'HTTP_INTERNAL_SERVER_ERROR', {
+            fr: 'Erreur lors de la récupération des événements',
+            en: 'Error retrieving events'
+        });
+    }
+})
 module.exports = router;
